@@ -10,11 +10,18 @@ services:
       - telegram-bot-api-data:/var/lib/telegram-bot-api
     ports:
       - "8081:8081"
+    container_name: telegram-bot-api
     labels:
       - "coolify.managed=true"
       - "coolify.proxy.port=8081"
       - "coolify.proxy.domain=shh.thept.ru"
+    networks:
+      - coolify
     restart: always
+
+networks:
+  coolify:
+    external: true
 
 volumes:
   telegram-bot-api-data:
