@@ -1,0 +1,42 @@
+# Development Rules (Superpowers)
+
+These rules are adopted from [obra/superpowers](https://github.com/obra/superpowers) to ensure high-quality, systematic software development.
+
+## Core Philosophy
+
+1.  **Test-Driven Development (TDD)**
+    *   **Red-Green-Refactor**: Write a failing test first, make it pass with minimal code, then refactor.
+    *   Never write production code without a failing test (where applicable).
+
+2.  **Systematic Debugging**
+    *   **Process over Guessing**: Use a 4-phase root cause analysis.
+    *   **Verify Fixes**: Ensure the fix is actually a fix (evidence over claims).
+    *   **Defense in Depth**: Fix the root cause, not just the symptom.
+
+3.  **Complexity Reduction**
+    *   **Simplicity is the Goal**: Always strive for the simplest implementation that satisfies the requirements.
+    *   Avoid over-engineering.
+
+4.  **Evidence Over Claims**
+    *   Verify everything. Don't assume it works; prove it works.
+
+## Workflow
+
+### 1. Brainstorming & Design
+*   **Before Coding**: Refine ideas, explore alternatives, and validate the design.
+*   **Output**: A clear design or strategy.
+
+### 2. Planning
+*   **Break It Down**: Decompose work into bite-sized, verifyable tasks.
+*   **Detailed Plans**: Each task should have exact file paths and verification steps.
+
+### 3. Execution
+*   **Focus**: Execute one task at a time.
+*   **Review**: Check against the plan and originally intended design.
+
+### 4. Verification
+*   **Automated Tests**: Run tests frequently.
+*   **Manual Verification**: Verify the end-user experience where automated tests fall short.
+
+## Communication
+*   **Language**: Always respond in Russian.
