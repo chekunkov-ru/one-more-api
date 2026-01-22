@@ -1,0 +1,21 @@
+name: Lint and Validate
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate Docker Compose
+        run: docker compose config --quiet
+
+      - name: ShellCheck test script
+        uses: ludeeus/action-shellcheck@master
+        with:
+          scandir: '.'
