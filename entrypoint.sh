@@ -6,8 +6,13 @@ sysctl -w net.ipv6.conf.all.disable_ipv6=1 2>/dev/null || true
 sysctl -w net.ipv6.conf.default.disable_ipv6=1 2>/dev/null || true
 ip6tables -A OUTPUT -j REJECT --reject-with icmp6-port-unreachable 2>/dev/null || true
 
-if [ -n "$SOCKS5_HOST" ] && [ -n "$SOCKS5_PORT" ]; then
-  echo "Starting SSH SOCKS proxy -> ${SOCKS5_HOST}:${SOCKS5_PORT}"
+if [ -n "$SOCKS5_HOST" ] && [ -n "$SOCKS5_PORT" ] && [ -n "$SOCKS5_KEY" ]; then
+  echo "Setting up SSH SOCKS proxy -> ${SOCKS5_HOST}:${SOCKS5_PORT}"
+
+  mkdir -p /root/.ssh && chmod 700 /root/.ssh
+  printf '%s\n' "$SOCKS5_KEY" > /root/.ssh/id_ed25519
+  chmod 600 /root/.ssh/id_ed25519
+
   ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
       -o IdentitiesOnly=yes -o PasswordAuthentication=no \
       -N -D 127.0.0.1:1080 \
@@ -62,10 +67,10 @@ EOF
     iptables -t nat -A REDSOCKS -p tcp -j REDIRECT --to-ports 12345
     iptables -t nat -A OUTPUT -p tcp -j REDSOCKS
 
-    echo "Transparent proxy configured (SSH -> redsocks -> ${SOCKS5_HOST})"
+    echo "Transparent proxy configured (redsocks -> SSH -> ${SOCKS5_HOST})"
   fi
 else
-  echo "No SOCKS5 proxy configured, running directly"
+  echo "No SOCKS5 proxy configured (need SOCKS5_HOST, SOCKS5_PORT, SOCKS5_KEY)"
 fi
 
 exec /docker-entrypoint.sh "$@"

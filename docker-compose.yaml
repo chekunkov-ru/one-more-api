@@ -8,9 +8,10 @@ services:
       TELEGRAM_STAT: "true"
       TELEGRAM_VERBOSITY: "2"
       # SSH SOCKS proxy for Telegram DC connections (optional)
-      # PORT = SSH port on HOST (e.g. 22), USER/PASS not needed (key auth)
+      # PORT = SSH port on HOST (e.g. 22), KEY = private key content
       SOCKS5_HOST: ${SOCKS5_HOST:-}
       SOCKS5_PORT: ${SOCKS5_PORT:-22}
+      SOCKS5_KEY: ${SOCKS5_KEY:-}
     # Required for iptables inside container (redsocks transparent proxy)
     cap_add:
       - NET_ADMIN
