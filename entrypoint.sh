@@ -7,10 +7,30 @@ sysctl -w net.ipv6.conf.default.disable_ipv6=1 2>/dev/null || true
 ip6tables -A OUTPUT -j REJECT --reject-with icmp6-port-unreachable 2>/dev/null || true
 
 if [ -n "$SOCKS5_HOST" ] && [ -n "$SOCKS5_PORT" ]; then
-  echo "Configuring transparent SOCKS5 proxy via redsocks -> ${SOCKS5_HOST}:${SOCKS5_PORT}"
+  echo "Starting SSH SOCKS proxy -> ${SOCKS5_HOST}:${SOCKS5_PORT}"
+  ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
+      -o IdentitiesOnly=yes -o PasswordAuthentication=no \
+      -N -D 127.0.0.1:1080 \
+      "root@${SOCKS5_HOST}" -p "${SOCKS5_PORT}" \
+      -i /root/.ssh/id_ed25519 &
+  SSH_PID=$!
 
-  # Generate redsocks config
-  cat > /etc/redsocks.conf <<EOF
+  for i in 1 2 3 4 5; do
+    if nc -z 127.0.0.1 1080 2>/dev/null; then
+      break
+    fi
+    sleep 1
+  done
+
+  if ! nc -z 127.0.0.1 1080 2>/dev/null; then
+    echo "WARNING: SSH SOCKS proxy failed to start, continuing without proxy"
+    unset SOCKS5_HOST
+  else
+    echo "SSH SOCKS proxy ready on 127.0.0.1:1080"
+
+    apk add --no-cache redsocks >/dev/null 2>&1 || true
+
+    cat > /etc/redsocks.conf <<EOF
 base {
     log_debug = off;
     log_info = on;
@@ -21,44 +41,31 @@ base {
 redsocks {
     local_ip = 127.0.0.1;
     local_port = 12345;
-    ip = ${SOCKS5_HOST};
-    port = ${SOCKS5_PORT};
+    ip = 127.0.0.1;
+    port = 1080;
     type = socks5;
-    login = "${SOCKS5_USER}";
-    password = "${SOCKS5_PASS}";
 }
 EOF
 
-  # Start redsocks in background
-  redsocks -c /etc/redsocks.conf
+    redsocks -c /etc/redsocks.conf
 
-  # iptables rules to redirect all outgoing TCP traffic through redsocks
-  # Exclude traffic to the SOCKS5 proxy itself and local networks
-  iptables -t nat -N REDSOCKS || true
-  iptables -t nat -F REDSOCKS
+    iptables -t nat -N REDSOCKS || true
+    iptables -t nat -F REDSOCKS
+    iptables -t nat -A REDSOCKS -d 0.0.0.0/8 -j RETURN
+    iptables -t nat -A REDSOCKS -d 10.0.0.0/8 -j RETURN
+    iptables -t nat -A REDSOCKS -d 127.0.0.0/8 -j RETURN
+    iptables -t nat -A REDSOCKS -d 169.254.0.0/16 -j RETURN
+    iptables -t nat -A REDSOCKS -d 172.16.0.0/12 -j RETURN
+    iptables -t nat -A REDSOCKS -d 192.168.0.0/16 -j RETURN
+    iptables -t nat -A REDSOCKS -d 224.0.0.0/4 -j RETURN
+    iptables -t nat -A REDSOCKS -d 240.0.0.0/4 -j RETURN
+    iptables -t nat -A REDSOCKS -p tcp -j REDIRECT --to-ports 12345
+    iptables -t nat -A OUTPUT -p tcp -j REDSOCKS
 
-  # Don't redirect traffic to the proxy server itself (avoid loop)
-  iptables -t nat -A REDSOCKS -d "${SOCKS5_HOST}" -j RETURN
-  # Don't redirect local/private traffic
-  iptables -t nat -A REDSOCKS -d 0.0.0.0/8 -j RETURN
-  iptables -t nat -A REDSOCKS -d 10.0.0.0/8 -j RETURN
-  iptables -t nat -A REDSOCKS -d 127.0.0.0/8 -j RETURN
-  iptables -t nat -A REDSOCKS -d 169.254.0.0/16 -j RETURN
-  iptables -t nat -A REDSOCKS -d 172.16.0.0/12 -j RETURN
-  iptables -t nat -A REDSOCKS -d 192.168.0.0/16 -j RETURN
-  iptables -t nat -A REDSOCKS -d 224.0.0.0/4 -j RETURN
-  iptables -t nat -A REDSOCKS -d 240.0.0.0/4 -j RETURN
-
-  # Redirect everything else to redsocks
-  iptables -t nat -A REDSOCKS -p tcp -j REDIRECT --to-ports 12345
-
-  # Apply to all outgoing TCP traffic
-  iptables -t nat -A OUTPUT -p tcp -j REDSOCKS
-
-  echo "SOCKS5 transparent proxy configured successfully"
+    echo "Transparent proxy configured (SSH -> redsocks -> ${SOCKS5_HOST})"
+  fi
 else
-  echo "No SOCKS5 proxy configured (SOCKS5_HOST/SOCKS5_PORT not set), running directly"
+  echo "No SOCKS5 proxy configured, running directly"
 fi
 
-# Delegate to the original entrypoint
 exec /docker-entrypoint.sh "$@"
