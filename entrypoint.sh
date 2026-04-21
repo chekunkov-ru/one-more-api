@@ -10,7 +10,7 @@ if [ -n "$SOCKS5_HOST" ] && [ -n "$SOCKS5_PORT" ] && [ -n "$SOCKS5_KEY" ]; then
   echo "Setting up SSH SOCKS proxy -> ${SOCKS5_HOST}:${SOCKS5_PORT}"
 
   mkdir -p /root/.ssh && chmod 700 /root/.ssh
-  printf '%s\n' "$SOCKS5_KEY" > /root/.ssh/id_ed25519
+  printf '%b\n' "$SOCKS5_KEY" > /root/.ssh/id_ed25519
   chmod 600 /root/.ssh/id_ed25519
 
   ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
