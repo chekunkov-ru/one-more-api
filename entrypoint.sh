@@ -4,6 +4,7 @@ set -e
 echo "Disabling IPv6..."
 sysctl -w net.ipv6.conf.all.disable_ipv6=1 2>/dev/null || true
 sysctl -w net.ipv6.conf.default.disable_ipv6=1 2>/dev/null || true
+ip6tables -A OUTPUT -j REJECT --reject-with icmp6-port-unreachable 2>/dev/null || true
 
 if [ -n "$SOCKS5_HOST" ] && [ -n "$SOCKS5_PORT" ]; then
   echo "Configuring transparent SOCKS5 proxy via redsocks -> ${SOCKS5_HOST}:${SOCKS5_PORT}"
